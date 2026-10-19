@@ -1,0 +1,4 @@
+node_modules
+dist
+# 63 MB full-detail model: regenerate with tools/export_ravana.py (see README)
+public/models/ravana_full.glb
