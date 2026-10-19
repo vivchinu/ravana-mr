@@ -3,6 +3,8 @@
 Mixed-reality boss battle for **Meta Quest 3**, built with **Three.js + WebXR** (Vite).
 Place a 2.5 m Ravana on your real floor, then shoot all ten heads with the bow.
 
+**▶ Play:** https://vivchinu.github.io/ravana-mr/ — open it in the **Meta Quest Browser** and press *Enter Mixed Reality*. GitHub Pages serves HTTPS, so no certificate or adb setup is needed.
+
 > **Status:** tested end-to-end in a desktop browser (desktop preview mode: placement, aiming,
 > all 10 targets, no double scoring, fireballs, victory, restart). **Not yet tested on a Quest 3
 > headset**: passthrough, hit-test floor detection, anchors and controller-mounted bow offsets still
@@ -65,6 +67,13 @@ npm run dev:https      # self-signed cert, https://<PC-LAN-IP>:5173
 Open the Network URL printed by Vite in the Quest Browser and accept the certificate warning. Make sure Windows Firewall allows Node on private networks.
 
 **Production build:** run `npm run build` and serve `dist/` over HTTPS from any static host.
+
+### Hosting on GitHub Pages
+The live site is the `gh-pages` branch: the Vite build with base path `/ravana-mr/`. After changing the code, push `main` as usual, then redeploy with:
+```bash
+bash tools/deploy-pages.sh
+```
+`ravana_full.glb` (63 MB) is not committed or hosted, so `?model=full` only works locally after running the export script.
 
 ### Entering the experience
 1. The start page lists **diagnostics**: secure context, WebXR, `immersive-ar`, `immersive-vr`, browser, triangle counts, and whether the 10 hitbox nodes were found.
