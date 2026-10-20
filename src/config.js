@@ -18,10 +18,11 @@ export const CONFIG = {
   },
 
   ravana: {
-    defaultHeight: num('height', 2.5), // metres, top of the crowns to the soles
-    minHeight: 1.2,
-    maxHeight: 6,
-    heightStep: 0.25,
+    defaultHeight: num('height', 6), // metres, top of the crowns to the soles (Dussehra effigy size)
+    minHeight: 1.5,
+    maxHeight: 20,
+    heightStep: 1,
+    maxPlaceDistance: 60, // metres — place him far away on the floor so he looks huge
     // Body hits (non-scoring) use a BVH raycast against the character mesh.
     bodyCollision: true,
   },
@@ -96,7 +97,7 @@ export const CONFIG = {
     minSpeed: 10, // m/s at minimum draw
     gravity: 1.5, // m/s^2 (small drop; the aim line only shows while drawing)
     maxActive: 14,
-    lifetime: 3, // s in flight before despawn
+    lifetime: 4, // s in flight before despawn
     stuckLifetime: 4, // s an arrow stays stuck in Ravana's body
     length: 0.75, // metres
   },
@@ -108,12 +109,12 @@ export const CONFIG = {
     cooldown: num('cooldown', 7), // seconds between fireballs
     firstDelay: 5,
     warningTime: 1.4, // charge-up glow before launch
-    speed: 2.6, // m/s — slow enough to shoot down or lean away from
+    speed: 3.2, // m/s — slow enough to shoot down or lean away from
     radius: 0.14, // metres
     playerRadius: 0.2,
     maxLateralOffset: 0.25, // aim this far beside the head at random
     minPlayerDistance: 1.6, // never launch if the player is closer than this to Ravana
-    lifetime: 9,
+    lifetime: 14,
   },
 
   ui: {

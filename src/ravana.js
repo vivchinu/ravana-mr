@@ -370,6 +370,14 @@ export class Ravana {
     return this.targets.filter((t) => !t.destroyed);
   }
 
+  /** Random point on the character's surface (world space) — used to spawn fire on the effigy. */
+  surfacePoint(out = new THREE.Vector3()) {
+    const mesh = this.bodyMeshes[(Math.random() * this.bodyMeshes.length) | 0];
+    const pos = mesh.geometry.attributes.position;
+    out.fromBufferAttribute(pos, (Math.random() * pos.count) | 0);
+    return out.applyMatrix4(mesh.matrixWorld);
+  }
+
   navelWorld(out = new THREE.Vector3()) {
     return out.copy(this.navel.center).applyMatrix4(this.root.matrixWorld);
   }
@@ -432,10 +440,10 @@ export class Ravana {
     return false;
   }
 
-  /** Finale: golden emissive glow (0..1) and sinking below the real floor (metres). */
-  setFinale(glow, sinkMetres) {
+  /** Finale: emissive glow (0..1, gold by default) and sinking below the real floor (metres). */
+  setFinale(glow, sinkMetres, color = [1.0, 0.62, 0.15]) {
     for (const m of this.materials) {
-      m.emissive.setRGB(1.0, 0.62, 0.15);
+      m.emissive.setRGB(color[0], color[1], color[2]);
       m.emissiveIntensity = glow * 1.6;
       m.clippingPlanes = sinkMetres > 0 ? [this.clipPlane] : null;
     }

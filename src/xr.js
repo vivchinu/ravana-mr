@@ -260,7 +260,7 @@ export class XRManager {
     this.ray(p, _p, _d);
     const r = new THREE.Ray(_p, _d);
     const hit = r.intersectPlane(FLOOR, new THREE.Vector3());
-    if (hit && hit.distanceTo(_p) < 20) return { position: hit, source: 'floor-plane', result: null };
+    if (hit && hit.distanceTo(_p) < CONFIG.ravana.maxPlaceDistance) return { position: hit, source: 'floor-plane', result: null };
     return null;
   }
 

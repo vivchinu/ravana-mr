@@ -116,6 +116,9 @@ const archery = new Archery(bow, xr, camera, {
   haptic: (p, i, ms) => pulse(p, i, ms),
 });
 window.RAVANA.archery = archery;
+window.RAVANA.renderer = renderer;
+// Debug: advance the game by dt seconds (works even when the tab isn't animating).
+window.RAVANA.step = (dt = 1 / 60) => loop(lastTime + dt * 1000, null);
 
 // Desktop pointer (mouse)
 const mouse = new THREE.Vector2(0, 0);
@@ -160,6 +163,7 @@ function refreshPanel() {
     remaining: remaining(),
     destroyed: ravana.targets.map((t) => t.destroyed),
     score: game.score,
+    navel: ravana.navel?.hit ? 'hit' : ravana.navel?.active ? 'active' : 'hidden',
     warning: [game.compatWarning, ravana.hitboxWarning].filter(Boolean).join(' '),
   };
   const hb = { id: 'hitboxes', label: `Hitboxes: ${ravana.debugVisible ? 'ON' : 'OFF'}` };
@@ -470,44 +474,80 @@ function startFinale() {
   sfx.play('charge');
 }
 
+/**
+ * Dussehra finale (after the navel is pierced):
+ *   0.0–1.8 s  Brahmastra charge — golden aura and rising embers
+ *   1.8–4.6 s  the effigy burns — flames, smoke and crackers popping all over his body
+ *   4.6 s      BIG EXPLOSION — flash, light, shockwaves, fire, smoke, flying debris
+ *   5.4 s+     fireworks + giant "HAPPY DUSSEHRA" in the sky; victory panel at 6.6 s
+ */
+const FIREWORK_TIMES = [5.4, 5.9, 6.5, 7.0, 7.6, 8.3];
 function updateFinale(dt) {
+  const prev = game.finaleT;
   const t = (game.finaleT += dt);
   const H = ravana.height;
-  const base = _w.copy(ravana.root.position);
-  base.y = ravana.floorY;
-  if (t < 2.2) {
-    const k = t / 2.2;
-    ravana.setFinale(k, 0);
+  const s = Math.max(1, H / 4);
+  const base = new THREE.Vector3(ravana.root.position.x, ravana.floorY, ravana.root.position.z);
+  const crossed = (x) => prev < x && t >= x;
+
+  if (t < 1.8) {
+    const k = t / 1.8;
+    ravana.setFinale(k * 0.55, 0);
     effects.setAura(k);
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
       const a = Math.random() * Math.PI * 2;
       _v.set(base.x + Math.cos(a) * game.finaleRadius, base.y + Math.random() * H * 0.3, base.z + Math.sin(a) * game.finaleRadius);
-      effects.particles.emit(_v, 1, { color: COLORS.GOLD, speed: 0.3, up: 1.5 + k * 2, life: 1.2, size: 0.05, gravity: 0.5, drag: 0.5 });
+      effects.particles.emit(_v, 1, { color: COLORS.GOLD, speed: 0.3, up: (1.5 + k * 2) * s, life: 1.2, size: 0.05 * s, gravity: 0.5, drag: 0.5 });
     }
-  } else {
-    if (!game.exploded) {
-      game.exploded = true;
-      const chest = ravana.chestPoint(new THREE.Vector3());
-      const top = ravana.topPoint(new THREE.Vector3());
-      effects.flash(chest, COLORS.WHITE, H * 0.9, 0.6);
-      effects.flash(chest, COLORS.GOLD, H * 1.4, 1.2);
-      effects.ring(chest, COLORS.GOLD, H * 0.9, 1.2);
-      effects.ring(top, COLORS.ORANGE, H * 0.7, 1.0);
-      effects.particles.emit(chest, 220, { color: COLORS.GOLD, speed: 5, life: 1.6, size: 0.07, gravity: -1, radius: H * 0.2 });
-      effects.particles.emit(top, 120, { color: COLORS.ORANGE, speed: 3.5, life: 1.4, size: 0.06, radius: H * 0.15 });
-      sfx.play('explode');
+  } else if (t < 4.6) {
+    if (crossed(1.8)) {
+      sfx.play('burn');
+      game.message = 'The effigy of Ravana burns!';
+      refreshPanel();
     }
-    const k = THREE.MathUtils.clamp((t - 2.2) / 1.6, 0, 1);
-    ravana.setFinale(1 + k, k * k * H * 1.05); // glows brighter while sinking into the real floor
-    effects.setAura(Math.max(0, 1 - (t - 2.2) / 2.0));
-  }
-  if (t > 4.4) {
-    ravana.root.visible = false;
+    const k = (t - 1.8) / 2.8;
+    // Embers glowing through the effigy: red-orange, flickering, texture still visible.
+    ravana.setFinale(0.12 + 0.18 * k + 0.1 * Math.random(), 0, [1.0, 0.22, 0.02]);
+    effects.setAura(Math.max(0, 1 - k * 2));
+    if (crossed(3.2)) sfx.play('burn');
+    const pop = effects.burn((out) => ravana.surfacePoint(out), H, 0.6 + k * 1.6);
+    if (pop) {
+      effects.crackerPop(ravana.surfacePoint(_v), H);
+      sfx.play('crackle');
+    }
+  } else if (!game.exploded) {
+    game.exploded = true;
+    const chest = ravana.chestPoint(new THREE.Vector3());
+    ravana.root.visible = false; // gone in the flash
     effects.setAura(0);
-    setState('victory');
+    effects.bigExplosion(chest, ravana.floorY, H);
+    sfx.play('bigboom');
+    for (const p of xr.pointers) pulse(p, 1, 400);
+    console.log('[game] Ravana explodes');
+  }
+
+  for (const ft of FIREWORK_TIMES) {
+    if (crossed(ft)) {
+      launchFireworks(base, H, s, 1 + (Math.random() < 0.5 ? 1 : 0));
+    }
+  }
+  if (crossed(5.8)) {
+    effects.showBanner(new THREE.Vector3(base.x, base.y + H * 1.05 + 0.5, base.z), Math.max(3.2, H * 1.5));
     sfx.play('victory');
+  }
+  if (t > 6.6) {
+    game.fireworkTimer = 1.2;
+    setState('victory');
     console.log(`[game] VICTORY — score ${game.score}, shots ${game.shots}`);
   }
+}
+
+function launchFireworks(base, H, s, n) {
+  for (let i = 0; i < n; i++) {
+    const p = base.clone().add(new THREE.Vector3((Math.random() - 0.5) * H * 0.5, 0, (Math.random() - 0.5) * H * 0.5));
+    effects.firework(p, H * 1.3 + 2, s);
+  }
+  sfx.play('whistle');
 }
 
 // ---------------------------------------------------------------------------
@@ -520,7 +560,7 @@ function updateBowPose(dt) {
     _o.set(0.2, -0.2, -0.65).applyMatrix4(camera.matrixWorld);
     bow.group.scale.setScalar(0.55);
     pointerRay(desktopPointer, _v, _d);
-    const aim = ravana.root.visible ? ravana.rayTest(_v, _d, 40) : null;
+    const aim = ravana.root.visible ? ravana.rayTest(_v, _d, 90) : null;
     const target = _w.copy(_v).addScaledVector(_d, aim ? aim.distance : 15);
     _m.lookAt(_o, target, UP);
     _q.setFromRotationMatrix(_m);
@@ -539,7 +579,7 @@ function updateAimLaser() {
     return;
   }
   bow.getFireRay(_o, _d);
-  const aim = ravana.rayTest(_o, _d, 30);
+  const aim = ravana.rayTest(_o, _d, 90);
   if (aim?.type === 'head') aim.target.aimed = true;
   if (aim?.type === 'navel') ravana.navel.aimed = true;
   aimLine.visible = true;
@@ -582,12 +622,15 @@ function updatePointers(frame) {
     if (hit) {
       reticle.visible = true;
       reticle.position.copy(hit.position);
+      // Keep the ring readable when placing far away.
+      camera.getWorldPosition(_w);
+      reticle.scale.setScalar(Math.max(1, hit.position.distanceTo(_w) * 0.12) * Math.max(1, ravana.height / 4));
       // Thumbstick: height (Y) and turn (X)
       const axes = p?.inputSource?.gamepad?.axes;
       if (axes && axes.length >= 4) {
         const ax = Math.abs(axes[2]) > 0.3 ? axes[2] : 0;
         const ay = Math.abs(axes[3]) > 0.3 ? axes[3] : 0;
-        if (ay) ravana.setHeight(ravana.height - ay * 1.5 * game.dt);
+        if (ay) ravana.setHeight(ravana.height - ay * Math.max(1.5, ravana.height * 0.6) * game.dt);
         if (ax) game.placeYawOffset -= ax * 2 * game.dt;
         if (ax || ay) game.placeDirty = true;
       }
@@ -668,7 +711,17 @@ function loop(time, frame) {
     }
   }
 
-  effects.update(dt, elapsed, renderer);
+  // Keep celebrating while the victory panel is up.
+  if (game.state === 'victory' && game.mode !== 'none') {
+    game.fireworkTimer -= dt;
+    if (game.fireworkTimer <= 0) {
+      game.fireworkTimer = 1.4 + Math.random() * 1.2;
+      const H = ravana.height;
+      launchFireworks(new THREE.Vector3(ravana.root.position.x, ravana.floorY, ravana.root.position.z), H, Math.max(1, H / 4), 1);
+    }
+  }
+
+  effects.update(dt, elapsed, renderer, sfx);
   renderer.render(scene, camera);
 }
 

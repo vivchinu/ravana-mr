@@ -84,7 +84,7 @@ bash tools/deploy-pages.sh
 ## 4. How to play
 | Phase | Controls |
 |---|---|
-| Placement | Point at the floor and the gold ring follows it. Pull the **trigger** to place. **Thumbstick ↕** height, **↔** turn. Panel: Height −/+, Reset size. |
+| Placement | Ravana is a **6 m Dussehra effigy** by default, sized from 1.5 to 20 m. Place him far away (up to 60 m) on the floor so he towers over the room. Point at the floor and the gold ring follows it; it grows with distance so it stays visible. Pull the **trigger** to place. **Thumbstick ↕** height, **↔** turn. Panel: Height −/+, Reset size. |
 | Ready | **Start Battle**, **Reposition Ravana**, Fireballs ON/OFF, Hitboxes ON/OFF. |
 | Pick up the bow | The bow floats in front of you at waist height. Reach to its handle and **hold the GRIP button** to hold it. Let go of GRIP and the bow stays floating where you left it. |
 | Nock & draw | Bring your **other hand** to the string and hold **GRIP** (the trigger also works). An arrow appears on the string. **Pull back**: the string follows your hand, the limbs bend, and a gold aim line appears. The aim runs from your string hand through the bow grip, like a real bow. |
@@ -92,7 +92,7 @@ bash tools/deploy-pages.sh
 | **Hand tracking** (put the controllers down) | Close your **FIST** around the floating bow's handle to hold it. The bow attaches to your fist, with the handle running through your curled fingers, and turns with your forearm. Open your hand to drop it. With the other hand, make a **fist or pinch** at the string, pull back, and **open your hand** to shoot. Pinching the panel buttons still works. A hand holding the bow or string never clicks the UI by accident. |
 | Final target: the navel | After all ten heads are destroyed, a glowing ring appears at Ravana's **navel**, the source of his immortality (amrita) in the Ramayana. The counter shows **NAVEL!**. Only an arrow in the navel (+500) triggers the Brahmastra finale. Before that, the navel can't be hit. |
 | Fireballs | A glowing orb charges at Ravana's chest (warning sound + panel warning), then flies slowly along a straight line. Shoot it (+50) or lean aside. Getting hit costs 25 points and flashes red. |
-| Victory | After the navel is pierced, Ravana glows gold, the Brahmastra aura rises, a final explosion plays, he sinks into the floor, then **DHARMA PREVAILS** appears with the score, accuracy and **Restart**. |
+| Victory (Dussehra finale) | The Brahmastra charges (golden aura), then **the effigy burns**: flames, smoke and crackers pop all over his body. Next comes a **huge explosion** with a white-hot flash, light burst, ground shockwave rings, a fireball and flying burning debris. Then **fireworks** and a giant glowing **HAPPY DUSSEHRA** in the sky above where he stood. The victory panel says *Happy Dussehra — Dharma prevails* and fireworks keep going until you restart. The score, accuracy and **Restart** are on the panel. |
 
 Desktop preview: left-click places Ravana and presses buttons. **Hold the left button to draw** (full draw in 0.9 s) and release to shoot. Right-drag looks around, the wheel moves, **H** toggles hitboxes, **R** restarts, **Esc** returns to the menu.
 
@@ -118,6 +118,7 @@ Desktop preview: left-click places Ravana and presses buttons. **Hold the left b
 - **Test all ten heads:** shoot each head, or in the console during a battle run (fires a full-draw arrow)
   `for (let i = 1; i <= 10; i++) setTimeout(() => RAVANA.shootAt(i), i * 500)`.
   `RAVANA.shootAt(n)` aims the real bow and fires a real arrow through the normal collision path. Then run `RAVANA.shootNavel()` for the final navel shot. The navel's wireframe sphere is magenta when **Hitboxes: ON**.
+- **Debug stepping:** `RAVANA.step(dt)` advances the game by `dt` seconds even when the tab isn't animating, which is handy for testing the finale from the console.
 - **Verify the victory sequence:** after the tenth head the navel target appears. After the navel hit, the state goes `battle → finale → victory` (~4.4 s), fireballs stop, and arrows no longer collide. `RAVANA.effects.particles.n` and `RAVANA.arrows.active.length` return to 0.
 - **Double-hit guard:** a destroyed head's collision volume is disabled. Re-shooting it passes through to the body (non-scoring, the arrow sticks).
 
@@ -140,7 +141,7 @@ Desktop preview: left-click places Ravana and presses buttons. **Hold the left b
 ## 8. Known limitations / honest notes
 - **Passthrough, hit-test, anchors** depend on the Quest Browser version and permissions. The game uses what `session.enabledFeatures` reports. Without hit-test, placement uses the runtime's `local-floor` plane (y = 0, your Guardian floor), and the panel says which source is in use. Without anchors, Ravana stays fixed in `local-floor` space. If you recenter the headset, use **Reposition**.
 - **Hand tracking** uses `hand-tracking`, which is optional and may not be granted. Fist detection and the fist-attached bow were verified with simulated hand joints in the desktop browser, not on a Quest. Real tracking can lose fingers when the hand is occluded; the bow then keeps its last fist pose. If grabs trigger too easily or not at all, tune `hands.fistCurlClose`/`fistCurlOpen` (watch `curl` on the pointers via the console).
-- The ten heads are one combined mesh. Hits show effects and markers, but **head geometry is not removed**. At the finale the whole model glows and sinks below a clipping plane at floor level.
+- The ten heads are one combined mesh. Hits show effects and markers, but **head geometry is not removed**. At the finale the whole model burns, then disappears inside the explosion flash; the debris is procedural shards, not pieces of the model.
 - The bow is mounted on the controller's target-ray pose, and hand positions for grabbing use the grip (palm) pose. The two-hand logic was verified with simulated controllers in the desktop browser, not on a Quest. If the bow sits oddly in your hand, adjust `CONFIG.bow.position` / `rotationDeg`. If grabbing feels too strict or too loose, adjust `grabRadius` / `stringGrabRadius`.
 - Real occlusion by furniture (depth sensing) is not implemented. Virtual objects always draw over the room.
 
